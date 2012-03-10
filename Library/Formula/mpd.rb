@@ -1,9 +1,9 @@
 require 'formula'
 
-class Mpd <Formula
-  url 'http://downloads.sourceforge.net/project/musicpd/mpd/0.16/mpd-0.16.tar.bz2'
+class Mpd < Formula
+  url 'http://sourceforge.net/projects/musicpd/files/mpd/0.16.7/mpd-0.16.7.tar.bz2'
   homepage 'http://mpd.wikia.com'
-  md5 '3fc8ccc4488cbaadc1a10f415eada35f'
+  sha1 '878f3ce82d4f00f6cbad63a625b2c0274c4a704a'
 
   depends_on 'pkg-config' => :build
   depends_on 'glib'
@@ -34,7 +34,7 @@ class Mpd <Formula
             "--enable-fluidsynth",
             "--enable-zip",
             "--enable-lame-encoder"]
-    args << "--disable-curl" if MACOS_VERSION <= 10.5
+    args << "--disable-curl" if MacOS.leopard?
     args << "--enable-lastfm" if ARGV.include?("--lastfm")
 
     system "./configure", *args

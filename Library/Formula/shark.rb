@@ -1,15 +1,14 @@
 require 'formula'
 
-class Shark <Formula
-  url 'http://downloads.sourceforge.net/project/shark-project/Shark%20Core/Shark%202.3.2/shark-2.3.2.tar.bz2'
+class Shark < Formula
   homepage 'http://shark-project.sourceforge.net/'
-  md5 'e149c77b9f9722c93d9fac21b2abee10'
+  url 'http://downloads.sourceforge.net/project/shark-project/Shark%20Core/Shark%202.3.4/shark-2.3.4.zip'
+  md5 '12d87a519c27b33800df11b7c78972ed'
 
-  depends_on 'cmake'
+  depends_on 'cmake' => :build
 
   def install
-    Dir.chdir('cmake')
-    system "cmake . #{std_cmake_parameters}"
+    system "cmake #{std_cmake_parameters} ."
     system "make install"
   end
 end

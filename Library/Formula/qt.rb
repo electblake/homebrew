@@ -1,15 +1,16 @@
 require 'formula'
-require 'hardware'
 
-class Qt <Formula
-  url 'http://get.qt.nokia.com/qt/source/qt-everywhere-opensource-src-4.7.1.tar.gz'
-  md5 '6f88d96507c84e9fea5bf3a71ebeb6d7'
+class Qt < Formula
   homepage 'http://qt.nokia.com/'
+  url 'http://get.qt.nokia.com/qt/source/qt-everywhere-opensource-src-4.8.0.tar.gz'
+  md5 'e8a5fdbeba2927c948d9f477a6abe904'
 
-  def patches
-    # To fix http://bugreports.qt.nokia.com/browse/QTBUG-13623. Patch sent upstream.
-    "http://qt.gitorious.org/qt/qt/commit/9f18a1ad5ce32dd397642a4c03fa1fcb21fb9456.patch"
+  bottle do
+    url 'https://downloads.sf.net/project/machomebrew/Bottles/qt-4.8.0-bottle.tar.gz'
+    sha1 '2bfe00c5112b0d2a680cd01144701f8937846096'
   end
+
+  head 'git://gitorious.org/qt/qt.git', :branch => 'master'
 
   def options
     [
@@ -21,31 +22,33 @@ class Qt <Formula
     ]
   end
 
-  def self.x11?
-    File.exist? "/usr/X11R6/lib"
+  depends_on "d-bus" if ARGV.include? '--with-qtdbus'
+  depends_on 'sqlite' if MacOS.leopard?
+
+  # Fix compilation with llvm-gcc. Remove for 4.8.1.
+  def patches
+    "https://qt.gitorious.org/qt/qt/commit/448ab7cd150ab7bb7d12bcac76bc2ce1c72298bd?format=patch"
   end
 
-  depends_on "d-bus" if ARGV.include? '--with-qtdbus'
-  depends_on 'libpng' unless x11?
-  depends_on 'sqlite' if MACOS_VERSION <= 10.5
-
   def install
+    # Needed for Qt 4.8.0 due to attempting to link moc with gcc.
+    ENV['LD'] = ENV['CXX']
+
+    ENV.x11
     ENV.append "CXXFLAGS", "-fvisibility=hidden"
     args = ["-prefix", prefix,
             "-system-libpng", "-system-zlib",
+            "-L/usr/X11/lib", "-I/usr/X11/include",
             "-confirm-license", "-opensource",
             "-cocoa", "-fast" ]
 
     # See: https://github.com/mxcl/homebrew/issues/issue/744
-    args << "-system-sqlite" if MACOS_VERSION <= 10.5
+    args << "-system-sqlite" if MacOS.leopard?
     args << "-plugin-sql-mysql" if (HOMEBREW_CELLAR+"mysql").directory?
 
     if ARGV.include? '--with-qtdbus'
       args << "-I#{Formula.factory('d-bus').lib}/dbus-1.0/include"
       args << "-I#{Formula.factory('d-bus').include}/dbus-1.0"
-      args << "-L#{Formula.factory('d-bus').lib}"
-      args << "-ldbus-1"
-      args << "-dbus-linked"
     end
 
     if ARGV.include? '--with-qt3support'
@@ -54,31 +57,30 @@ class Qt <Formula
       args << "-no-qt3support"
     end
 
-    if ARGV.include? '--with-debug-and-release'
-      args << "-debug-and-release"
-    else
-      args << "-release"
-    end
-
     unless ARGV.include? '--with-demos-examples'
       args << "-nomake" << "demos" << "-nomake" << "examples"
     end
 
-    if Qt.x11?
-      args << "-L/usr/X11R6/lib"
-      args << "-I/usr/X11R6/include"
-    else
-      args << "-L#{Formula.factory('libpng').lib}"
-      args << "-I#{Formula.factory('libpng').include}"
-    end
-
-    if snow_leopard_64? or ARGV.include? '--universal'
+    if MacOS.prefer_64_bit? or ARGV.build_universal?
       args << '-arch' << 'x86_64'
     end
 
-    if !snow_leopard_64? or ARGV.include? '--universal'
+    if !MacOS.prefer_64_bit? or ARGV.build_universal?
       args << '-arch' << 'x86'
     end
+
+    if ARGV.include? '--with-debug-and-release'
+      args << "-debug-and-release"
+      # Debug symbols need to find the source so build in the prefix
+      mv "../qt-everywhere-opensource-src-#{version}", "#{prefix}/src"
+      cd "#{prefix}/src"
+    else
+      args << "-release"
+    end
+
+    # Compilation currently fails with the newer versions of clang
+    # shipped with Xcode 4.3+
+    ENV.llvm if MacOS.clang_version.to_f <= 3.1
 
     system "./configure", *args
     system "make"
@@ -97,12 +99,23 @@ class Qt <Formula
     # Some config scripts will only find Qt in a "Frameworks" folder
     # VirtualBox is an example of where this is needed
     # See: https://github.com/mxcl/homebrew/issues/issue/745
+    # TODO - surely this link can be made without the `cd`
     cd prefix do
       ln_s lib, "Frameworks"
     end
+
+    # The pkg-config files installed suggest that geaders can be found in the
+    # `include` directory. Make this so by creating symlinks from `include` to
+    # the Frameworks' Headers folders.
+    Pathname.glob(lib + '*.framework/Headers').each do |path|
+      framework_name = File.basename(File.dirname(path), '.framework')
+      ln_s path.realpath, include+framework_name
+    end
   end
 
-  def caveats
-    "We agreed to the Qt opensource license for you.\nIf this is unacceptable you should uninstall."
+  def caveats; <<-EOS.undent
+    We agreed to the Qt opensource license for you.
+    If this is unacceptable you should uninstall.
+    EOS
   end
 end

@@ -1,19 +1,18 @@
 require 'formula'
 
-class Imagick <Formula
-  url 'http://pecl.php.net/get/imagick-3.0.1.tgz'
+class Imagick < Formula
   homepage 'http://pecl.php.net/package/imagick'
+  url 'http://pecl.php.net/get/imagick-3.0.1.tgz'
   md5 'e2167713316639705202cf9b6cb1fdb1'
 
   depends_on 'imagemagick'
 
   def install
-    extensions = lib+'php'+'extensions'
-    Dir.chdir "Imagick-#{version}" do
+    cd "imagick-#{version}" do
       system "phpize"
       system "./configure", "--prefix=#{prefix}"
       system "make"
-      extensions.install 'modules/imagick.so'
+      (lib+'php/extensions').install 'modules/imagick.so'
     end
   end
 

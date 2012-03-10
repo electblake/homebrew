@@ -1,9 +1,9 @@
 require 'formula'
 
-class Drizzle <Formula
-  url 'http://launchpad.net/drizzle/elliott/2011-01-17/+download/drizzle7-2011.01.08.tar.gz'
+class Drizzle < Formula
   homepage 'http://drizzle.org'
-  md5 'e2b26ad273f5d8560b3423716f52931d'
+  url 'http://launchpad.net/drizzle/elliott/2011-03-14/+download/drizzle7-2011.03.13.tar.gz'
+  md5 'e152edfec45779c0bd34ece707aa022d'
 
   depends_on 'protobuf'
   depends_on 'boost'
@@ -13,8 +13,10 @@ class Drizzle <Formula
   depends_on 'libgcrypt'
   depends_on 'readline'
 
+  skip_clean ['sbin', 'bin']
+
   def install
-    system "./configure", "--disable-debug", "--disable-dependency-tracking",
+    system "./configure", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
     system "make install"
   end

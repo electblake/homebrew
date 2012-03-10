@@ -1,13 +1,22 @@
 require 'formula'
 
-class Redo <Formula
-  version '0.05'
-  url "https://github.com/apenwarr/redo/zipball/redo-#{version}"
+class RedoDocs < Formula
+  head 'https://github.com/apenwarr/redo.git', {:using => :git, :branch => 'man' }
+  version 'foo'
+end
+
+class Redo < Formula
   homepage 'https://github.com/apenwarr/redo'
-  md5 'e96fe6dbdb75f8512a2ebf62b064186b'
+  url "https://github.com/apenwarr/redo/tarball/redo-0.11"
+  md5 'c7090dbe2e731815e0201339ededc011'
 
   def install
     ENV['PREFIX'] = prefix
     system "./redo install"
+    rm share+'doc/redo/README.md' # lets not have two copies
+
+    RedoDocs.new('redodocs').brew do
+      man1.install Dir['*']
+    end
   end
 end

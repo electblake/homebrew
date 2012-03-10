@@ -1,10 +1,10 @@
 require 'formula'
 
-class Logstalgia <Formula
-  url 'http://logstalgia.googlecode.com/files/logstalgia-1.0.2.tar.gz'
-  head 'git://github.com/acaudwell/Logstalgia.git'
+class Logstalgia < Formula
+  url 'http://logstalgia.googlecode.com/files/logstalgia-1.0.3.tar.gz'
+  head 'https://github.com/acaudwell/Logstalgia.git'
   homepage 'http://code.google.com/p/logstalgia/'
-  md5 'c72fcff8fd507bee6c1aebf80d24009c'
+  md5 '5160380adb1fb1ed9272cf57fbdf3341'
 
   depends_on 'pkg-config' => :build
   depends_on 'sdl'
@@ -13,6 +13,12 @@ class Logstalgia <Formula
   depends_on 'jpeg'
   depends_on 'pcre'
 
+  if ARGV.build_head? and MacOS.xcode_version >= "4.3"
+    depends_on "automake" => :build
+    depends_on "libtool" => :build
+  end
+
+
   def install
     ENV.x11 # Put freetype-config in path
 
@@ -20,9 +26,9 @@ class Logstalgia <Formula
     ENV.append "CXXFLAGS", "-I#{HOMEBREW_PREFIX}/include"
 
     # Handle building head.
-    system "autoreconf -f -i" unless File.exist? "configure"
+    system "autoreconf -f -i" if ARGV.build_head?
 
-    system "./configure", "--disable-debug", "--disable-dependency-tracking",
+    system "./configure", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
     system "make"
     system "make install"

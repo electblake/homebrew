@@ -1,10 +1,12 @@
 require 'formula'
 
-class Xar <Formula
+class Xar < Formula
   url 'http://xar.googlecode.com/files/xar-1.5.2.tar.gz'
   homepage 'http://code.google.com/p/xar/'
   md5 '8eabb055d3387b8edc30ecfb08d2e80d'
 
+  # Known issue upstream:
+  # http://code.google.com/p/xar/issues/detail?id=51
   def patches
     DATA
   end

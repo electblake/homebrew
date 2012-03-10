@@ -1,9 +1,9 @@
 require 'formula'
 
-class Bazaar <Formula
-  url 'http://launchpadlibrarian.net/59616932/bzr-2.2.2.tar.gz'
-  md5 'd1bfa2fd1aad282c423c78d62ebacb21'
+class Bazaar < Formula
   homepage 'http://bazaar-vcs.org/'
+  url 'http://launchpad.net/bzr/2.4/2.4.2/+download/bzr-2.4.2.tar.gz'
+  md5 'cfc06fddd348445c65a247c0b33a05db'
 
   def options
     [["--system", "Install using the OS X system Python."]]
@@ -18,29 +18,25 @@ class Bazaar <Formula
 
     if ARGV.include? "--system"
       ENV.prepend "PATH", "/System/Library/Frameworks/Python.framework/Versions/Current/bin", ":"
-    else
-      python_version = `python -c "import sys;print sys.version"`
-      if python_version[0,4] == "2.7."
-        opoo <<-EOS
-Bazaar might not yet work with Python 2.7.
-You can force an installation using the system Python by doing:
-  brew install bazaar --system
-EOS
-      end
     end
 
-    # Find the archs of the Python we are building against.
-    # If the python includes PPC support, then don't use Intel-
-    # specific compiler flags
-    archs = archs_for_command("python")
-    ENV.minimal_optimization if archs.include? :ppc64 or archs.include? :ppc7400
+    # Find the arch for the Python we are building against.
+    # We remove 'ppc' support, so we can pass Intel-optimized CFLAGS.
+    if ARGV.include? "--system"
+      python_cmd = "/usr/bin/python"
+    else
+      python_cmd = "python"
+    end
+
+    archs = archs_for_command(python_cmd)
+    archs.remove_ppc!
+    ENV['ARCHFLAGS'] = archs.as_arch_flags
 
     system "make"
     inreplace "bzr", "#! /usr/bin/env python", "#!/usr/bin/python" if ARGV.include? "--system"
-    libexec.install ['bzr', 'bzrlib']
+    libexec.install 'bzr', 'bzrlib'
 
-    bin.mkpath
-    ln_s libexec+'bzr', bin+'bzr'
+    bin.install_symlink libexec+'bzr'
   end
 
   def caveats

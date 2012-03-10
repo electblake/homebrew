@@ -1,14 +1,17 @@
 require 'formula'
 
-class Redis <Formula
-  url 'https://github.com/antirez/redis/tarball/v2.0.4-stable'
-  head 'git://github.com/antirez/redis.git'
+class Redis < Formula
   homepage 'http://redis.io/'
-  sha1 '48300996d3d34cccf076330859f37248fa5f6c1b'
-  version '2.0.4'
+  url 'http://redis.googlecode.com/files/redis-2.4.8.tar.gz'
+  md5 'ac776d25f238b142d3d526cfcdc621ab'
+
+  head 'https://github.com/antirez/redis.git', :branch => 'unstable'
+
+  fails_with_llvm 'Fails with "reference out of range from _linenoise"', :build => 2334
 
   def install
-    fails_with_llvm "Breaks with LLVM"
+    # Architecture isn't detected correctly on 32bit Snow Leopard without help
+    ENV["OBJARCH"] = MacOS.prefer_64_bit? ? "-arch x86_64" : "-arch i386"
 
     # Head and stable have different code layouts
     src = File.exists?('src/Makefile') ? 'src' : '.'
@@ -24,23 +27,26 @@ class Redis <Formula
     inreplace "redis.conf" do |s|
       s.gsub! "/var/run/redis.pid", "#{var}/run/redis.pid"
       s.gsub! "dir ./", "dir #{var}/db/redis/"
+      s.gsub! "\# bind 127.0.0.1", "bind 127.0.0.1"
     end
 
     doc.install Dir["doc/*"]
     etc.install "redis.conf"
-    (prefix+'io.redis.redis-server.plist').write startup_plist
+    plist_path.write startup_plist
+    plist_path.chmod 0644
   end
 
   def caveats
     <<-EOS.undent
     If this is your first install, automatically load on login with:
-        cp #{prefix}/io.redis.redis-server.plist ~/Library/LaunchAgents
-        launchctl load -w ~/Library/LaunchAgents/io.redis.redis-server.plist
+        mkdir -p ~/Library/LaunchAgents
+        cp #{plist_path} ~/Library/LaunchAgents/
+        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
 
-    If this is an upgrade and you already have the io.redis.redis-server.plist loaded:
-        launchctl unload -w ~/Library/LaunchAgents/io.redis.redis-server.plist
-        cp #{prefix}/io.redis.redis-server.plist ~/Library/LaunchAgents
-        launchctl load -w ~/Library/LaunchAgents/io.redis.redis-server.plist
+    If this is an upgrade and you already have the #{plist_path.basename} loaded:
+        launchctl unload -w ~/Library/LaunchAgents/#{plist_path.basename}
+        cp #{plist_path} ~/Library/LaunchAgents/
+        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
 
       To start redis manually:
         redis-server #{etc}/redis.conf
@@ -59,10 +65,10 @@ class Redis <Formula
     <key>KeepAlive</key>
     <true/>
     <key>Label</key>
-    <string>io.redis.redis-server</string>
+    <string>#{plist_name}</string>
     <key>ProgramArguments</key>
     <array>
-      <string>#{bin}/redis-server</string>
+      <string>#{HOMEBREW_PREFIX}/bin/redis-server</string>
       <string>#{etc}/redis.conf</string>
     </array>
     <key>RunAtLoad</key>

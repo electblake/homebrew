@@ -1,29 +1,34 @@
 require 'formula'
 
-class Recode <Formula
+class Recode < Formula
   url 'http://recode.progiciels-bpi.ca/archives/recode-3.6.tar.gz'
   homepage 'http://www.gnu.org/software/recode/'
   md5 'be3f40ad2e93dae5cd5f628264bf1877'
 
   depends_on "gettext"
+  depends_on "libtool" if MacOS.xcode_version >= "4.3"
 
   def patches
     # Patches from MacPorts
+    # No reason for patch given, no link to patches given. Someone shoot that guy :P
     { :p0 => DATA }
   end
 
   def install
-    if MACOS_VERSION >= 10.6
-      libtool_config = "/usr/share/libtool/config"
-    else
-      libtool_config = "/usr/share/libtool"
-    end
+    ENV.append 'LDFLAGS', '-liconv'
 
-    cp "#{libtool_config}/config.guess", "."
-    cp "#{libtool_config}/config.sub", "."
+    if MacOS.xcode_version >= "4.3"
+      d = "#{HOMEBREW_PREFIX}/share/libtool/config"
+      cp ["#{d}/config.guess", "#{d}/config.sub"], "."
+    elsif MacOS.leopard?
+      cp Dir["#{MacOS.xcode_prefix}/usr/share/libtool/config.*"], "."
+    else
+      cp Dir["#{MacOS.xcode_prefix}/usr/share/libtool/config/config.*"], "."
+    end
 
     system "./configure", "--disable-debug", "--disable-dependency-tracking",
                           "--without-included-gettext",
+                          "--infodir=#{info}",
                           "--prefix=#{prefix}",
                           "--mandir=#{man}"
     system "make install"
